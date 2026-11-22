@@ -1,0 +1,14 @@
+# OS & editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Runtime & temp files
+*.tmp
+*.lock
+*.log
+node_modules/

@@ -1,0 +1,40 @@
+name: Validate Plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run engine unit tests
+        run: node --test tests/engine.test.mjs
+
+      - name: Verify JSON manifests & syntax
+        run: |
+          node -e "
+            import('node:fs').then(fs => {
+              for (const f of ['plugin.json', 'hooks.json', 'scripts/i18n.json']) {
+                JSON.parse(fs.readFileSync(f, 'utf8'));
+                console.log('Valid JSON:', f);
+              }
+            });
+          "
+          node --check scripts/engine.mjs
+          node --check scripts/hook.mjs
+          node --check scripts/countdown-worker.mjs
+          node --check scripts/launch-widget.mjs
+          node --check scripts/ctl.mjs
