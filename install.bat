@@ -9,14 +9,9 @@ echo [Auto Shutdown] Installing Antigravity plugin...
 echo   Source: %SRC%
 echo   Target: %DEST%
 
-if not exist "%USERPROFILE%\.gemini\config\plugins" (
-    mkdir "%USERPROFILE%\.gemini\config\plugins"
+if not exist "%DEST%" (
+    mkdir "%DEST%"
 )
-
-if exist "%DEST%" (
-    rmdir /s /q "%DEST%"
-)
-mkdir "%DEST%"
 
 copy /y "%SRC%\plugin.json" "%DEST%\plugin.json" >nul
 copy /y "%SRC%\hooks.json" "%DEST%\hooks.json" >nul
@@ -25,10 +20,10 @@ copy /y "%SRC%\README.md" "%DEST%\README.md" >nul
 copy /y "%SRC%\LICENSE" "%DEST%\LICENSE" >nul
 copy /y "%SRC%\THIRD-PARTY-NOTICES.md" "%DEST%\THIRD-PARTY-NOTICES.md" >nul
 
-xcopy /e /i /y "%SRC%\assets" "%DEST%\assets" >nul
-xcopy /e /i /y "%SRC%\scripts" "%DEST%\scripts" >nul
-xcopy /e /i /y "%SRC%\skills" "%DEST%\skills" >nul
-xcopy /e /i /y "%SRC%\ui" "%DEST%\ui" >nul
+robocopy "%SRC%\assets" "%DEST%\assets" /MIR /NFL /NDL /NJH /NJS /NC /NS >nul
+robocopy "%SRC%\scripts" "%DEST%\scripts" /MIR /NFL /NDL /NJH /NJS /NC /NS >nul
+robocopy "%SRC%\skills" "%DEST%\skills" /MIR /NFL /NDL /NJH /NJS /NC /NS >nul
+robocopy "%SRC%\ui" "%DEST%\ui" /MIR /NFL /NDL /NJH /NJS /NC /NS >nul
 
 echo.
 echo [Auto Shutdown] Installed successfully!
@@ -38,3 +33,4 @@ echo       * Side Panel "+" menu -^> Auto Shutdown
 echo       * Chat -^> /auto-shutdown
 echo   - Config ^& state are preserved at: %USERPROFILE%\.gemini\config\auto-shutdown
 endlocal
+exit /b 0
