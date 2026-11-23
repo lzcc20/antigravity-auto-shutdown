@@ -20,18 +20,21 @@ mkdir "%DEST%"
 
 copy /y "%SRC%\plugin.json" "%DEST%\plugin.json" >nul
 copy /y "%SRC%\hooks.json" "%DEST%\hooks.json" >nul
+copy /y "%SRC%\mcp_config.json" "%DEST%\mcp_config.json" >nul
 copy /y "%SRC%\README.md" "%DEST%\README.md" >nul
 copy /y "%SRC%\LICENSE" "%DEST%\LICENSE" >nul
+copy /y "%SRC%\THIRD-PARTY-NOTICES.md" "%DEST%\THIRD-PARTY-NOTICES.md" >nul
 
 xcopy /e /i /y "%SRC%\assets" "%DEST%\assets" >nul
 xcopy /e /i /y "%SRC%\scripts" "%DEST%\scripts" >nul
 xcopy /e /i /y "%SRC%\skills" "%DEST%\skills" >nul
+xcopy /e /i /y "%SRC%\ui" "%DEST%\ui" >nul
 
 echo.
 echo [Auto Shutdown] Installed successfully!
+echo   - Native UI is now available in Antigravity:
+echo       * Left Sidebar -^> Plugins -^> Auto Shutdown (Full Page)
+echo       * Side Panel "+" menu -^> Auto Shutdown
+echo       * Chat -^> /auto-shutdown
 echo   - Config ^& state are preserved at: %USERPROFILE%\.gemini\config\auto-shutdown
-echo   - Launching bottom-right floating widget...
-node "%DEST%\scripts\ctl.mjs" ui >nul 2>&1
-
-echo   - Open Antigravity Customizations to manage the plugin, or run /auto-shutdown in chat.
 endlocal

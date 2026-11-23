@@ -20,21 +20,24 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run engine unit tests
-        run: node --test tests/engine.test.mjs
+      - name: Run engine & MCP App server tests
+        run: node --test tests/engine.test.mjs tests/mcp.test.mjs
 
-      - name: Verify JSON manifests & syntax
+      - name: Verify JSON manifests, script syntax & bundled UI
         run: |
-          node -e "
-            import('node:fs').then(fs => {
-              for (const f of ['plugin.json', 'hooks.json', 'scripts/i18n.json']) {
-                JSON.parse(fs.readFileSync(f, 'utf8'));
-                console.log('Valid JSON:', f);
-              }
-            });
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            for (const f of ['plugin.json', 'hooks.json', 'mcp_config.json', 'scripts/i18n.json']) {
+              JSON.parse(fs.readFileSync(f, 'utf8'));
+              console.log('Valid JSON:', f);
+            }
+            const html = fs.readFileSync('ui/app.html', 'utf8');
+            if (!html.includes('__MCP_APPS__')) throw new Error('Bundled SDK missing in ui/app.html');
           "
           node --check scripts/engine.mjs
           node --check scripts/hook.mjs
+          node --check scripts/mcp-server.mjs
           node --check scripts/countdown-worker.mjs
           node --check scripts/launch-widget.mjs
           node --check scripts/ctl.mjs
+          node --check scripts/build-ui.mjs

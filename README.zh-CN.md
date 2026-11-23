@@ -1,36 +1,37 @@
 <div align="center">
   <img src="assets/logo.svg" alt="Auto Shutdown Logo" width="76" height="76" />
-  <h1>Auto Shutdown · 反重力自动关机插件</h1>
+  <h1>Auto Shutdown · 反重力原生风格自动关机插件</h1>
   <p>
-    <strong>专为 Antigravity 长时间挂机任务打造的极简高级自动关机守卫。</strong><br/>
-    基于 Antigravity 官方生命周期钩子实时监测所有并行会话与后台任务，确认全部空闲后倒计时执行关机 / 休眠 / 睡眠；搭配常驻桌面右下角的克制悬浮胶囊与展开控制卡片。
+    <strong>无缝融入 Antigravity 原生界面的任务守卫与自动关机插件。</strong><br/>
+    通过官方生命周期钩子实时追踪所有并行对话与后台任务，确认全部彻底空闲后倒计时执行关机 / 休眠 / 睡眠；基于官方 MCP Apps 原生嵌入 Antigravity 侧边栏、右侧辅助面板与对话流，自动继承宿主深浅主题与字体，看不出是外部插件。
   </p>
 
   <p>
     <a href="README.md">English</a> ·
+    <a href="#原生界面预览">界面预览</a> ·
     <a href="#安装方式">安装方式</a> ·
     <a href="#工作原理与防误关设计">防误关设计</a> ·
-    <a href="#命令行与对话控制">对话与命令行</a> ·
+    <a href="#对话与命令行控制">对话与命令行</a> ·
     <a href="CHANGELOG.md">更新日志</a>
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/Antigravity-Plugin_v1-181A1F?style=flat-square&logoColor=white" alt="Antigravity Plugin" />
-    <img src="https://img.shields.io/badge/外部依赖-零依赖-2F855A?style=flat-square" alt="零依赖" />
+    <img src="https://img.shields.io/badge/Antigravity-MCP_App_%2B_Hooks-181A1F?style=flat-square" alt="Antigravity MCP App + Hooks" />
+    <img src="https://img.shields.io/badge/运行依赖-零依赖-2F855A?style=flat-square" alt="零依赖" />
     <img src="https://img.shields.io/badge/License-MIT-555?style=flat-square" alt="MIT License" />
-    <img src="https://img.shields.io/badge/支持平台-Windows_右下角浮窗_%7C_macOS_%7C_Linux-3A3F4B?style=flat-square" alt="支持平台" />
+    <img src="https://img.shields.io/badge/全平台支持-Windows_%7C_macOS_%7C_Linux-3A3F4B?style=flat-square" alt="全平台支持" />
   </p>
 </div>
 
 ---
 
-## 界面预览
+## 原生界面预览
 
-朴素克制的哑光质感，默认静静贴合在**屏幕右下角任务栏上方**——平时折叠为一颗低干扰胶囊，点击向上展开为完整控制卡片；自动跟随 Windows 深浅色模式，并支持一键切换 `中 / EN` 与系统托盘收纳。
+完全遵循 Antigravity 原生视觉体系：直接读取宿主实时 CSS 变量（`--color-background-*`、`--color-text-*`、`--color-border-*`、`--font-sans`）并设置 `prefersBorder: false`，无外挂悬浮窗违和感，自动跟随 Antigravity 深浅色切换，支持一键 `中 / EN`。
 
 <div align="center">
-  <p><strong>右下角极简悬浮胶囊</strong></p>
-  <img src="assets/preview-pill-dark.png" alt="右下角悬浮胶囊" />
+  <p><strong>左侧导航栏完整视图（左侧边栏 → Plugins → Auto Shutdown）</strong></p>
+  <img src="assets/preview-fullpage-dark.png" alt="全屏原生设置视图" width="720" />
 </div>
 
 <br/>
@@ -38,15 +39,33 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><strong>深邃哑光黑（倒计时状态）</strong></td>
-      <td align="center"><strong>温润纸感浅色（多任务监控中）</strong></td>
+      <td align="center"><strong>右侧辅助面板 · 深色（倒计时状态）</strong></td>
+      <td align="center"><strong>右侧辅助面板 · 浅色（多任务监测中）</strong></td>
     </tr>
     <tr>
-      <td align="center"><img src="assets/preview-card-dark.png" alt="深色展开卡片" width="330" /></td>
-      <td align="center"><img src="assets/preview-card-light.png" alt="浅色展开卡片" width="330" /></td>
+      <td align="center"><img src="assets/preview-sidepanel-dark.png" alt="右侧面板深色" width="340" /></td>
+      <td align="center"><img src="assets/preview-sidepanel-light.png" alt="右侧面板浅色" width="340" /></td>
     </tr>
   </table>
 </div>
+
+<br/>
+
+<div align="center">
+  <p><strong>对话内嵌状态卡（直接渲染在聊天消息流中）</strong></p>
+  <img src="assets/preview-inline-dark.png" alt="对话内嵌卡片" width="540" />
+</div>
+
+---
+
+## 在 Antigravity 里如何打开（3 种原生入口）
+
+安装完成后，无需启动任何额外窗口，直接在 Antigravity 里使用：
+
+1. **右侧辅助面板（Side Panel）**：点右侧面板顶部的 **`+`**（或 **Overview → Plugins → Auto Shutdown**），像内置标签页一样停靠在对话右侧，边跑任务边看状态；
+2. **左侧主导航栏（Full Page）**：在左侧栏 **Plugins → Auto Shutdown** 打开设置风格完整面板；
+3. **对话内嵌卡片（Inline）**：在聊天框输入 `/auto-shutdown` 或直接说“打开自动关机面板 / 开启任务完成后自动关机”；
+4. *(可选)* **Windows 独立右下角桌边胶囊**：如果你把 Antigravity 最小化时也想在系统任务栏上方看状态，可随时运行 `node scripts/ctl.mjs ui` 手动唤起。
 
 ---
 
@@ -57,11 +76,10 @@
 - **多重防误关机保护**
   - **默认单次布防（One-shot）**：触发关机*之前*自动解除布防，确保下次开机正常对话不会意外关机。
   - **缓冲倒计时 + 唤醒自动撤回**：默认 2 分钟缓冲（支持 `30s / 60s / 2m / 5m`），期间一旦有任何新对话、工具调用或子代理唤醒，立刻自动取消倒计时。
-  - **手动中断不触发**：支持忽略 `USER_CANCELED`，调试途中手动点停不会误关机。
+  - **手动中断 / 报错保护**：支持分别开关「手动中断不触发（`USER_CANCELED`）」与「错误终止不触发（`ERROR`）」。
   - **僵尸会话自动清理**：结合活跃时间与 `transcript.jsonl` 修改时间自动淘汰意外关闭的残余会话。
-  - **安全演练模式**：卡片底部自带 `演练` 按钮，一键体验完整 15 秒倒计时与取消交互，绝不真正关机。
-- **零外部依赖、超轻量**：核心引擎使用纯 Node.js ESM（无需 `npm install`），Windows 右下角悬浮窗与托盘图标直接使用系统内置 WPF，秒启且内存占用极低。
-- **自然语言 & 斜杠命令控制**：内置 `/auto-shutdown` Skill，在反重力对话里直接说“开启任务完成后自动关机”或“打开右下角关机悬浮窗”即可控制。
+  - **安全演练模式**：底部自带 `安全演练 (15s)` 按钮，一键体验完整倒计时与取消流程，绝不真正关机。
+- **零运行依赖、全平台一致**：纯 Node.js ESM MCP 服务端 + 预打包单文件 MCP App 界面（`ui/app.html`），无需 `npm install`，Windows / macOS / Linux 开箱即用。
 
 ---
 
@@ -102,15 +120,15 @@ sh install.sh
 
 1. 任意对话开始推理（`PreInvocation`）或工具完成（`PostToolUse`）时，登记该 `conversationId` 为活跃状态；如果当时正处于倒计时，**立即取消关机**。
 2. 对话结束触发 `Stop` 时：
-   - 若 `fullyIdle === false`：说明仍有后台任务在运行，标记为“后台任务等待中”，不关机；
+   - 若 `fullyIdle === false`：说明仍有后台任务在运行，标记为“后台任务”，不关机；
    - 若 `fullyIdle === true`：注销该会话，并检查全局是否还有其他并行会话仍在运行。
-3. 当活跃会话数归零且处于布防状态时，启动独立后台倒计时进程（`countdown-worker.mjs`），每秒复核状态文件，倒计时归零前自动解除单次布防，随后执行 `关机` / `休眠` / `睡眠`。
+3. 当活跃会话数归零且处于布防状态时，启动独立后台倒计时进程（`countdown-worker.mjs`），每 500ms 复核状态文件，倒计时归零前自动解除单次布防，随后执行 `关机` / `休眠` / `睡眠`。
 
-> **挂机建议**：夜间跑大型任务时，可以配合反重力内置的 `/goal` 命令，并在任务开始前在右下角胶囊里点一下**「布防」**。注意：在启用插件*之前*就已经在跑的对话，要等到它下一次触发钩子时才会被登记。
+> **夜间挂机建议**：搭配 Antigravity 内置的 `/goal` 命令运行长任务，并在开跑前点击「开启布防」。注意：在启用插件*之前*就已经在跑的对话，要等到它下一次触发钩子时才会被登记。
 
 ---
 
-## 命令行与对话控制
+## 对话与命令行控制
 
 在 Antigravity 对话框中可直接使用 `/auto-shutdown`，或在终端执行：
 
@@ -121,18 +139,17 @@ sh install.sh
 | `node scripts/ctl.mjs arm --mode continuous --action hibernate --grace 60` | 开启持续守候（60 秒后休眠） |
 | `node scripts/ctl.mjs disarm` | 关闭布防并取消当前倒计时 |
 | `node scripts/ctl.mjs cancel` | 仅取消当前倒计时 |
-| `node scripts/ctl.mjs ui` | 打开 / 唤起右下角悬浮窗（Windows） |
-| `node scripts/ctl.mjs ui --expanded` | 直接以展开卡片模式打开悬浮窗 |
 | `node scripts/ctl.mjs preview --seconds 15` | 启动 15 秒安全演练倒计时（不关机） |
 | `node scripts/ctl.mjs clear-stale` | 手动清理残留的活跃任务记录 |
+| `node scripts/ctl.mjs ui` | 可选：唤起 Windows 独立桌面右下角胶囊 |
 
 ---
 
 ## 本地测试与校验
 
 ```bash
-# 运行核心状态机单元测试
-node --test tests/engine.test.mjs
+# 运行核心引擎与 MCP App 服务端测试
+node --test tests/engine.test.mjs tests/mcp.test.mjs
 
 # 使用 Antigravity 官方校验器严格检查插件
 agy plugin validate --strict .
@@ -140,4 +157,4 @@ agy plugin validate --strict .
 
 ## 开源协议
 
-本项目基于 [MIT License](LICENSE) 开源。
+本项目基于 [MIT License](LICENSE) 开源。第三方开源声明见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。

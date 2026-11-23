@@ -2,13 +2,13 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "auto-shutdown",
   "displayName": "Auto Shutdown",
-  "version": "1.0.0",
-  "description": "Monitors active Antigravity conversations and background tasks via lifecycle hooks, then gracefully shuts down, hibernates, or sleeps your PC with a minimalist bottom-right floating control.",
+  "version": "1.1.0",
+  "description": "Native-styled Antigravity MCP App & lifecycle hooks that monitor active conversations and background tasks, then gracefully shut down, hibernate, or sleep your machine once all work is idle.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
+    "Open the Auto Shutdown control panel in the side panel",
     "Arm one-shot auto-shutdown after all running tasks finish",
-    "Open the bottom-right auto-shutdown floating widget",
-    "Check current active tasks and auto-shutdown guard status"
+    "Show the live Auto Shutdown status card inline"
   ],
   "author": {
     "name": "lzcc20",
@@ -19,11 +19,11 @@
   "license": "MIT",
   "keywords": [
     "auto-shutdown",
+    "mcp-app",
     "power",
     "overnight",
     "idle",
     "hooks",
-    "windows",
     "automation"
   ]
 }

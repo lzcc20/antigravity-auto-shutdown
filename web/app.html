@@ -1,0 +1,1396 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auto Shutdown</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: var(--color-background-primary, #131417);
+      --bg-subtle: var(--color-background-secondary, #1a1c20);
+      --bg-elevated: var(--color-background-tertiary, #22252b);
+      --ink: var(--color-text-primary, #eceef2);
+      --ink-2: var(--color-text-secondary, #9399a6);
+      --ink-3: var(--color-text-tertiary, #626875);
+      --line: var(--color-border-primary, rgba(255, 255, 255, 0.085));
+      --line-strong: var(--color-border-secondary, rgba(255, 255, 255, 0.14));
+      --ok: var(--color-text-success, #5ec28d);
+      --warn: var(--color-text-warning, #e3a857);
+      --danger: var(--color-text-danger, #e06c65);
+      --font: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", sans-serif);
+      --mono: "Cascadia Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 12px;
+      --seg-active-bg: var(--color-background-primary, #2a2e36);
+    }
+
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg: var(--color-background-primary, #ffffff);
+      --bg-subtle: var(--color-background-secondary, #f5f5f4);
+      --bg-elevated: var(--color-background-tertiary, #ebebea);
+      --ink: var(--color-text-primary, #1a1b1e);
+      --ink-2: var(--color-text-secondary, #636770);
+      --ink-3: var(--color-text-tertiary, #8f939e);
+      --line: var(--color-border-primary, rgba(0, 0, 0, 0.08));
+      --line-strong: var(--color-border-secondary, rgba(0, 0, 0, 0.14));
+      --ok: var(--color-text-success, #2a7f53);
+      --warn: var(--color-text-warning, #b87014);
+      --danger: var(--color-text-danger, #c4433d);
+      --seg-active-bg: var(--color-background-primary, #ffffff);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      cursor: pointer;
+      outline: none;
+    }
+
+    button:focus-visible {
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 28%, transparent);
+    }
+
+    /* ==================== SHELL & SURFACE ADAPTATION ==================== */
+    .shell {
+      width: 100%;
+      min-height: 100%;
+    }
+
+    /* Full-page (global sidebar view) automatically centers like native Settings */
+    .shell[data-surface="panel"] {
+      padding: 0;
+    }
+
+    .panel-container {
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 640px) {
+      .shell[data-surface="panel"] {
+        padding: 28px 24px 40px;
+      }
+      .shell[data-surface="panel"] .panel-container {
+        max-width: 620px;
+      }
+      .shell[data-surface="panel"] .topbar {
+        padding: 0 0 18px 0;
+      }
+      .shell[data-surface="panel"] .topbar-title {
+        font-size: 17px;
+      }
+      .shell[data-surface="panel"] .topbar-sub {
+        display: block;
+      }
+      .shell[data-surface="panel"] .section {
+        padding: 18px 0;
+      }
+      .shell[data-surface="panel"] .pref-row-horizontal {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .shell[data-surface="panel"] .pref-row-horizontal .seg {
+        width: 248px;
+        flex-shrink: 0;
+      }
+      .shell[data-surface="panel"] .pref-row-horizontal .pref-meta {
+        margin-bottom: 0;
+      }
+      .shell[data-surface="panel"] .footer {
+        padding: 16px 0 0;
+      }
+    }
+
+    /* ==================== TOPBAR (SIDE PANEL / FULL PAGE) ==================== */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .brand-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: var(--ink);
+    }
+
+    .topbar-titles {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topbar-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    .topbar-sub {
+      display: none;
+      font-size: 12px;
+      color: var(--ink-2);
+      margin-top: 2px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      border: 1px solid var(--line);
+      background: var(--bg-subtle);
+      color: var(--ink-2);
+      white-space: nowrap;
+    }
+
+    .status-chip[data-tone="armed"] {
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+      border-color: color-mix(in srgb, var(--ok) 28%, transparent);
+      color: var(--ok);
+    }
+
+    .status-chip[data-tone="running"],
+    .status-chip[data-tone="preview"] {
+      background: color-mix(in srgb, var(--warn) 12%, transparent);
+      border-color: color-mix(in srgb, var(--warn) 28%, transparent);
+      color: var(--warn);
+    }
+
+    .status-chip[data-tone="countdown"] {
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+      color: var(--danger);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ink-3);
+      flex-shrink: 0;
+    }
+
+    .dot[data-tone="armed"] { background: var(--ok); }
+    .dot[data-tone="running"],
+    .dot[data-tone="preview"] { background: var(--warn); }
+    .dot[data-tone="countdown"] { background: var(--danger); }
+
+    .dot.pulse {
+      animation: softPulse 2.2s ease-in-out infinite;
+    }
+
+    @keyframes softPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.9); }
+    }
+
+    .ghost-btn {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-2);
+      transition: background 120ms ease, color 120ms ease;
+    }
+
+    .ghost-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--ink);
+    }
+
+    /* ==================== SECTIONS ==================== */
+    .section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-of-type {
+      border-bottom: none;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-3);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .section-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--ink-2);
+    }
+
+    /* ==================== COUNTDOWN HERO ==================== */
+    .countdown-box {
+      padding: 16px 14px 14px;
+      border-radius: var(--radius-lg);
+      border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent);
+      background: color-mix(in srgb, var(--danger) 8%, var(--bg-subtle));
+      text-align: center;
+    }
+
+    .countdown-box[data-preview="true"] {
+      border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+      background: color-mix(in srgb, var(--warn) 8%, var(--bg-subtle));
+    }
+
+    .countdown-digits {
+      font-size: 36px;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      color: var(--danger);
+    }
+
+    .countdown-box[data-preview="true"] .countdown-digits {
+      color: var(--warn);
+    }
+
+    .countdown-sub {
+      font-size: 12px;
+      color: var(--ink-2);
+      margin-top: 4px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 3px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--ink) 10%, transparent);
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--danger);
+      transition: width 220ms linear;
+    }
+
+    .countdown-box[data-preview="true"] .progress-fill {
+      background: var(--warn);
+    }
+
+    .countdown-actions {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 8px;
+    }
+
+    /* ==================== BUTTONS ==================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 31px;
+      padding: 0 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-subtle);
+      color: var(--ink);
+      transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--bg-elevated);
+    }
+
+    .btn:active {
+      opacity: 0.8;
+    }
+
+    .btn-primary {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      background: color-mix(in srgb, var(--ink) 88%, var(--bg));
+    }
+
+    .btn-armed {
+      background: color-mix(in srgb, var(--ok) 14%, transparent);
+      border-color: color-mix(in srgb, var(--ok) 32%, transparent);
+      color: var(--ok);
+    }
+
+    .btn-armed:hover {
+      background: color-mix(in srgb, var(--ok) 20%, transparent);
+    }
+
+    .btn-danger {
+      background: color-mix(in srgb, var(--danger) 16%, transparent);
+      border-color: color-mix(in srgb, var(--danger) 36%, transparent);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: color-mix(in srgb, var(--danger) 24%, transparent);
+    }
+
+    /* ==================== SUMMARY BAR ==================== */
+    .summary-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .summary-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .summary-dot-wrap {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--ink-3) 14%, transparent);
+      flex-shrink: 0;
+    }
+
+    .summary-dot-wrap[data-tone="armed"] { background: color-mix(in srgb, var(--ok) 15%, transparent); }
+    .summary-dot-wrap[data-tone="running"],
+    .summary-dot-wrap[data-tone="preview"] { background: color-mix(in srgb, var(--warn) 16%, transparent); }
+    .summary-dot-wrap[data-tone="countdown"] { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+
+    .summary-text {
+      min-width: 0;
+    }
+
+    .summary-headline {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .summary-caption {
+      font-size: 11.5px;
+      color: var(--ink-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ==================== ACTIVE TASKS LIST ==================== */
+    .task-list {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--bg-subtle);
+      overflow: hidden;
+    }
+
+    .task-empty {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 12px;
+      font-size: 12px;
+      color: var(--ink-2);
+    }
+
+    .task-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .task-row:first-child {
+      border-top: none;
+    }
+
+    .task-label {
+      flex: 1;
+      min-width: 0;
+      font-size: 12.5px;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .task-tag {
+      font-size: 11px;
+      color: var(--ink-3);
+      flex-shrink: 0;
+    }
+
+    .task-time {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-2);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    /* ==================== PREFERENCE CONTROLS ==================== */
+    .prefs-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .pref-meta {
+      margin-bottom: 6px;
+    }
+
+    .pref-title {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .pref-desc {
+      font-size: 11.5px;
+      color: var(--ink-2);
+      margin-top: 1px;
+    }
+
+    .seg {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      padding: 3px;
+      gap: 2px;
+      border-radius: 9px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--line);
+    }
+
+    .seg-btn {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--ink-2);
+      border: 1px solid transparent;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+      white-space: nowrap;
+    }
+
+    .seg-btn:hover {
+      color: var(--ink);
+    }
+
+    .seg-btn[aria-pressed="true"] {
+      background: var(--seg-active-bg);
+      border-color: var(--line-strong);
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-top: 2px;
+    }
+
+    .switch {
+      position: relative;
+      width: 34px;
+      height: 19px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--line-strong);
+      flex-shrink: 0;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--ink-2);
+      transition: transform 150ms ease, background 150ms ease;
+    }
+
+    .switch[aria-checked="true"] {
+      background: var(--ok);
+      border-color: var(--ok);
+    }
+
+    .switch[aria-checked="true"]::after {
+      transform: translateX(15px);
+      background: #ffffff;
+    }
+
+    /* ==================== FOOTER ==================== */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 16px 12px;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--ink-3);
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ==================== INLINE CHAT CARD MODE ==================== */
+    .shell[data-surface="inline"] {
+      padding: 4px;
+    }
+
+    .inline-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--bg-subtle);
+      overflow: hidden;
+    }
+
+    .inline-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 13px;
+    }
+
+    .inline-progress {
+      height: 2px;
+      background: color-mix(in srgb, var(--ink) 8%, transparent);
+    }
+
+    .inline-progress-fill {
+      height: 100%;
+      background: var(--danger);
+      transition: width 220ms linear;
+    }
+
+    .inline-progress[data-preview="true"] .inline-progress-fill {
+      background: var(--warn);
+    }
+
+    .inline-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 13px;
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 45%, transparent);
+    }
+
+    .inline-pills {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .mini-pill {
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--ink-2);
+      border: 1px solid transparent;
+      transition: background 120ms ease, color 120ms ease;
+    }
+
+    .mini-pill:hover {
+      background: var(--bg-elevated);
+      color: var(--ink);
+    }
+
+    .mini-pill[aria-pressed="true"] {
+      background: var(--seg-active-bg);
+      border-color: var(--line-strong);
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .inline-sep {
+      width: 1px;
+      height: 12px;
+      background: var(--line-strong);
+      margin: 0 3px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="app" class="shell" data-surface="panel"></div>
+
+  <script type="module">
+    /* __MCP_EXT_APPS_BUNDLE__ */
+    const { App, applyDocumentTheme, applyHostStyleVariables, applyHostFonts } = __MCP_APPS__;
+
+    const I18N = {
+      'zh-CN': {
+        title: 'Auto Shutdown',
+        subtitle: '监测全部 Antigravity 会话与后台任务，空闲后自动执行电源动作',
+        badgeStandby: '待机',
+        badgeArmed: '守候中',
+        badgeRunning: '运行中',
+        badgeCountdown: '倒计时',
+        badgePreview: '演练',
+        summaryIdleDisarmed: '当前空闲',
+        summaryIdleArmed: '已布防 · 等待任务结束',
+        summaryRunning: '{n} 个任务运行中',
+        summaryCountdown: '{time} 后{action}',
+        summaryPreview: '安全演练 · {time}',
+        captionDisarmed: '开启布防后，所有任务空闲 {grace} 后执行{action}',
+        captionArmedOnce: '单次布防 · 完成后 {grace} 自动{action}并自动解除',
+        captionArmedCont: '持续守候 · 每次全部任务空闲 {grace} 后{action}',
+        btnArm: '开启布防',
+        btnArmed: '已布防',
+        btnCancel: '取消',
+        btnCancelAction: '取消{action}',
+        btnRunNow: '立即执行',
+        countdownSub: '所有任务与后台作业已结束 · 即将执行{action}',
+        countdownPreviewSub: '安全演练模式 · 倒计时结束不会关机',
+        sectionTasks: '活跃任务',
+        tasksCount: '{n} 个进行中',
+        tasksEmpty: '当前无运行中的 Antigravity 任务',
+        btnClear: '清理',
+        stThinking: '推理中',
+        stTool: '工具',
+        stBackground: '后台任务',
+        sectionPrefs: '电源与安全策略',
+        lblMode: '守候模式',
+        descMode: '单次布防会在执行前自动关闭，防止下次开机误关',
+        modeOff: '关闭',
+        modeOnce: '单次布防',
+        modeCont: '持续守候',
+        lblAction: '电源动作',
+        descAction: '全部任务与后台进程结束后执行',
+        actShutdown: '关机',
+        actHibernate: '休眠',
+        actSleep: '睡眠',
+        lblGrace: '缓冲倒计时',
+        descGrace: '期间若有新对话或子代理唤醒将自动取消',
+        lblIgnoreCancel: '手动中断不触发',
+        descIgnoreCancel: '点击停止按钮终止任务时跳过自动关机',
+        lblIgnoreErr: '错误终止不触发',
+        descIgnoreErr: '任务报错退出时保留现场，不自动关机',
+        footerReady: 'Hook 已连接',
+        footerUpdated: 'Hook 已连接 · {time}',
+        btnPreview: '安全演练 (15s)',
+        btnPreviewShort: '演练',
+        langSwitch: 'EN',
+      },
+      en: {
+        title: 'Auto Shutdown',
+        subtitle: 'Monitors active Antigravity conversations and background tasks before powering off',
+        badgeStandby: 'Standby',
+        badgeArmed: 'Armed',
+        badgeRunning: 'Active',
+        badgeCountdown: 'Countdown',
+        badgePreview: 'Dry run',
+        summaryIdleDisarmed: 'Idle',
+        summaryIdleArmed: 'Armed · Watching tasks',
+        summaryRunning: '{n} task(s) active',
+        summaryCountdown: '{action} in {time}',
+        summaryPreview: 'Dry-run preview · {time}',
+        captionDisarmed: 'Arm to {action} {grace} after all tasks finish',
+        captionArmedOnce: 'One-shot · {action} after {grace} idle, then auto-disarm',
+        captionArmedCont: 'Continuous · {action} after {grace} idle',
+        btnArm: 'Arm guard',
+        btnArmed: 'Armed',
+        btnCancel: 'Cancel',
+        btnCancelAction: 'Cancel {action}',
+        btnRunNow: 'Run now',
+        countdownSub: 'All conversations and background tasks are idle',
+        countdownPreviewSub: 'Safe dry-run preview · No actual power action',
+        sectionTasks: 'Active Tasks',
+        tasksCount: '{n} active',
+        tasksEmpty: 'No active Antigravity tasks',
+        btnClear: 'Clear',
+        stThinking: 'Thinking',
+        stTool: 'Tool',
+        stBackground: 'Background',
+        sectionPrefs: 'Power & Safety',
+        lblMode: 'Guard mode',
+        descMode: 'One-shot disarms automatically before powering off',
+        modeOff: 'Off',
+        modeOnce: 'One-shot',
+        modeCont: 'Always',
+        lblAction: 'Power action',
+        descAction: 'Executed once every task and subagent is idle',
+        actShutdown: 'Shutdown',
+        actHibernate: 'Hibernate',
+        actSleep: 'Sleep',
+        lblGrace: 'Grace countdown',
+        descGrace: 'Auto-aborts immediately if any new turn wakes up',
+        lblIgnoreCancel: 'Skip on manual cancel',
+        descIgnoreCancel: 'Ignore stops triggered by manually canceling a run',
+        lblIgnoreErr: 'Skip on error stop',
+        descIgnoreErr: 'Keep machine awake if a task terminates with an error',
+        footerReady: 'Hooks connected',
+        footerUpdated: 'Hooks connected · {time}',
+        btnPreview: 'Dry run (15s)',
+        btnPreviewShort: 'Dry run',
+        langSwitch: '中',
+      },
+    };
+
+    const POWER_ICON_SVG = `
+      <svg class="brand-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M5.9 4.9a6.8 6.8 0 1 0 8.2 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M10 2.6v6.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    let surface = 'panel';
+    let snapshot = {
+      config: {
+        armed: false,
+        mode: 'once',
+        action: 'shutdown',
+        graceSeconds: 120,
+        ignoreUserCancel: true,
+        ignoreErrors: false,
+        language: 'zh-CN',
+      },
+      state: {
+        activeSessions: {},
+        countdown: { active: false, preview: false, action: 'shutdown', startedAt: null, executeAt: null, graceSeconds: 120 },
+        lastEvent: null,
+      },
+      sessions: [],
+      activeCount: 0,
+      platform: 'win32',
+      serverTime: Date.now(),
+    };
+    let clockOffsetMs = 0;
+    let isConnected = false;
+    let isBusy = false;
+    let demoMode = null;
+
+    const root = document.getElementById('app');
+
+    function t(key, vars = {}) {
+      const lang = snapshot?.config?.language === 'en' ? 'en' : 'zh-CN';
+      let str = (I18N[lang] && I18N[lang][key]) || I18N['zh-CN'][key] || key;
+      for (const [k, v] of Object.entries(vars)) {
+        str = str.replaceAll(`{${k}}`, String(v));
+      }
+      return str;
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function fmtMMSS(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+
+    function fmtGrace(sec) {
+      const lang = snapshot?.config?.language === 'en' ? 'en' : 'zh-CN';
+      if (sec % 60 === 0 && sec >= 60) {
+        const m = sec / 60;
+        return lang === 'en' ? `${m}m` : `${m}分钟`;
+      }
+      return lang === 'en' ? `${sec}s` : `${sec}秒`;
+    }
+
+    function actionText(action) {
+      if (action === 'hibernate') return t('actHibernate');
+      if (action === 'sleep') return t('actSleep');
+      return t('actShutdown');
+    }
+
+    function fmtClock(ms) {
+      try {
+        const d = new Date(ms);
+        return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch {
+        return '';
+      }
+    }
+
+    function applySnapshot(data) {
+      if (!data || typeof data !== 'object') return;
+      if (data.surface === 'inline' || data.surface === 'panel') {
+        surface = data.surface;
+      }
+      if (data.config) snapshot.config = { ...snapshot.config, ...data.config };
+      if (data.state) snapshot.state = { ...snapshot.state, ...data.state };
+      if (Array.isArray(data.sessions)) {
+        snapshot.sessions = data.sessions;
+      } else if (snapshot.state?.activeSessions) {
+        snapshot.sessions = Object.values(snapshot.state.activeSessions);
+      }
+      snapshot.activeCount = Number.isFinite(data.activeCount) ? data.activeCount : snapshot.sessions.length;
+      if (data.platform) snapshot.platform = data.platform;
+      if (Number.isFinite(data.serverTime)) {
+        snapshot.serverTime = data.serverTime;
+        clockOffsetMs = data.serverTime - Date.now();
+      }
+      render();
+    }
+
+    function computeViewModel() {
+      const cfg = snapshot.config;
+      const st = snapshot.state;
+      const cd = st?.countdown || {};
+      const now = Date.now() + clockOffsetMs;
+      const sessions = snapshot.sessions || [];
+      const activeCount = sessions.length;
+      const cdActive = Boolean(cd.active);
+      const cdPreview = Boolean(cdActive && cd.preview);
+
+      let remainSec = 0;
+      let progressPct = 0;
+      if (cdActive) {
+        const start = Number(cd.startedAt || now);
+        const end = Number(cd.executeAt || now);
+        const total = Math.max(1000, end - start);
+        const rem = Math.max(0, end - now);
+        remainSec = Math.ceil(rem / 1000);
+        progressPct = Math.max(0, Math.min(100, (rem / total) * 100));
+      }
+
+      let tone = 'standby';
+      let badge = t('badgeStandby');
+      let pulse = false;
+      if (cdActive) {
+        tone = cdPreview ? 'preview' : 'countdown';
+        badge = cdPreview ? t('badgePreview') : t('badgeCountdown');
+        pulse = true;
+      } else if (activeCount > 0) {
+        tone = 'running';
+        badge = t('badgeRunning');
+        pulse = true;
+      } else if (cfg.armed) {
+        tone = 'armed';
+        badge = t('badgeArmed');
+      }
+
+      const actLabel = actionText(cdActive ? (cd.action || cfg.action) : cfg.action);
+      const timeStr = fmtMMSS(remainSec);
+
+      let headline = t('summaryIdleDisarmed');
+      if (cdActive) {
+        headline = cdPreview ? t('summaryPreview', { time: timeStr }) : t('summaryCountdown', { time: timeStr, action: actLabel });
+      } else if (activeCount > 0) {
+        headline = t('summaryRunning', { n: activeCount });
+      } else if (cfg.armed) {
+        headline = t('summaryIdleArmed');
+      }
+
+      const graceLabel = fmtGrace(cfg.graceSeconds || 120);
+      let caption = t('captionDisarmed', { grace: graceLabel, action: actLabel });
+      if (cfg.armed) {
+        caption = cfg.mode === 'continuous'
+          ? t('captionArmedCont', { grace: graceLabel, action: actLabel })
+          : t('captionArmedOnce', { grace: graceLabel, action: actLabel });
+      }
+
+      return { cfg, st, cd, sessions, activeCount, cdActive, cdPreview, remainSec, progressPct, tone, badge, pulse, actLabel, timeStr, headline, caption, now };
+    }
+
+    function renderInline(vm) {
+      const { cfg, cdActive, cdPreview, progressPct, tone, pulse, actLabel, headline, caption } = vm;
+      const ctaClass = cdActive ? 'btn btn-danger' : (cfg.armed ? 'btn btn-armed' : 'btn btn-primary');
+      const ctaLabel = cdActive ? t('btnCancel') : (cfg.armed ? t('btnArmed') : t('btnArm'));
+      const ctaAction = cdActive ? 'cancel' : (cfg.armed ? 'disarm' : 'arm');
+
+      return `
+        <div class="inline-card">
+          <div class="inline-main">
+            <div class="summary-info">
+              <div class="summary-dot-wrap" data-tone="${tone}">
+                <span class="dot ${pulse ? 'pulse' : ''}" data-tone="${tone}"></span>
+              </div>
+              <div class="summary-text">
+                <div class="summary-headline">${escapeHtml(headline)}</div>
+                <div class="summary-caption">${escapeHtml(caption)}</div>
+              </div>
+            </div>
+            <button class="${ctaClass}" data-act="${ctaAction}">${escapeHtml(ctaLabel)}</button>
+          </div>
+
+          ${cdActive ? `
+            <div class="inline-progress" data-preview="${cdPreview}">
+              <div class="inline-progress-fill" style="width:${progressPct.toFixed(1)}%"></div>
+            </div>
+          ` : ''}
+
+          <div class="inline-bar">
+            <div class="inline-pills">
+              ${['shutdown', 'hibernate', 'sleep'].map((a) => `
+                <button class="mini-pill" data-act="set-action" data-val="${a}" aria-pressed="${cfg.action === a}">${escapeHtml(actionText(a))}</button>
+              `).join('')}
+              <span class="inline-sep"></span>
+              ${[[30, '30s'], [60, '60s'], [120, '2m'], [300, '5m']].map(([sec, lbl]) => `
+                <button class="mini-pill" data-act="set-grace" data-val="${sec}" aria-pressed="${cfg.graceSeconds === sec}">${lbl}</button>
+              `).join('')}
+            </div>
+            <button class="ghost-btn" data-act="preview">${escapeHtml(t('btnPreviewShort'))}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPanel(vm) {
+      const { cfg, st, sessions, activeCount, cdActive, cdPreview, progressPct, tone, badge, pulse, actLabel, timeStr, headline, caption, now } = vm;
+      const ctaClass = cdActive ? 'btn btn-danger' : (cfg.armed ? 'btn btn-armed' : 'btn btn-primary');
+      const ctaLabel = cdActive ? t('btnCancel') : (cfg.armed ? t('btnArmed') : t('btnArm'));
+      const ctaAction = cdActive ? 'cancel' : (cfg.armed ? 'disarm' : 'arm');
+
+      const tasksHtml = activeCount === 0
+        ? `<div class="task-empty"><span class="dot"></span><span>${escapeHtml(t('tasksEmpty'))}</span></div>`
+        : sessions.map((s) => {
+            const stKey = s.status === 'waiting_background' ? 'stBackground' : (s.status === 'running_tool' ? 'stTool' : 'stThinking');
+            const dotTone = s.status === 'waiting_background' ? 'armed' : 'running';
+            const elapsed = fmtMMSS((now - (s.startedAt || now)) / 1000);
+            return `
+              <div class="task-row">
+                <span class="dot" data-tone="${dotTone}"></span>
+                <span class="task-label" title="${escapeHtml(s.label || s.conversationId)}">${escapeHtml(s.label || s.conversationId)}</span>
+                <span class="task-tag">${escapeHtml(t(stKey))}</span>
+                <span class="task-time">${elapsed}</span>
+              </div>
+            `;
+          }).join('');
+
+      const footerText = st?.lastEvent?.timestamp
+        ? t('footerUpdated', { time: fmtClock(st.lastEvent.timestamp) })
+        : t('footerReady');
+
+      const modeVal = !cfg.armed ? 'off' : (cfg.mode === 'continuous' ? 'continuous' : 'once');
+
+      return `
+        <div class="panel-container">
+          <header class="topbar">
+            <div class="topbar-left">
+              ${POWER_ICON_SVG}
+              <div class="topbar-titles">
+                <div class="topbar-title-row">
+                  <span class="topbar-title">${escapeHtml(t('title'))}</span>
+                  <span class="status-chip" data-tone="${tone}">
+                    <span class="dot ${pulse ? 'pulse' : ''}" data-tone="${tone}"></span>
+                    ${escapeHtml(badge)}
+                  </span>
+                </div>
+                <span class="topbar-sub">${escapeHtml(t('subtitle'))}</span>
+              </div>
+            </div>
+            <div class="topbar-right">
+              <button class="ghost-btn" data-act="toggle-lang">${escapeHtml(t('langSwitch'))}</button>
+            </div>
+          </header>
+
+          ${cdActive ? `
+            <section class="section">
+              <div class="countdown-box" data-preview="${cdPreview}">
+                <div class="countdown-digits">${timeStr}</div>
+                <div class="countdown-sub">${escapeHtml(cdPreview ? t('countdownPreviewSub') : t('countdownSub', { action: actLabel }))}</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:${progressPct.toFixed(1)}%"></div>
+                </div>
+                <div class="countdown-actions">
+                  <button class="btn btn-danger" data-act="cancel">${escapeHtml(cdPreview ? t('btnCancel') : t('btnCancelAction', { action: actLabel }))}</button>
+                  <button class="btn" data-act="execute-now">${escapeHtml(t('btnRunNow'))}</button>
+                </div>
+              </div>
+            </section>
+          ` : `
+            <section class="section">
+              <div class="summary-bar">
+                <div class="summary-info">
+                  <div class="summary-dot-wrap" data-tone="${tone}">
+                    <span class="dot ${pulse ? 'pulse' : ''}" data-tone="${tone}"></span>
+                  </div>
+                  <div class="summary-text">
+                    <div class="summary-headline">${escapeHtml(headline)}</div>
+                    <div class="summary-caption">${escapeHtml(caption)}</div>
+                  </div>
+                </div>
+                <button class="${ctaClass}" data-act="${ctaAction}">${escapeHtml(ctaLabel)}</button>
+              </div>
+            </section>
+          `}
+
+          <section class="section">
+            <div class="section-head">
+              <span class="section-label">${escapeHtml(t('sectionTasks'))}</span>
+              <div class="section-meta">
+                <span>${activeCount > 0 ? escapeHtml(t('tasksCount', { n: activeCount })) : '0'}</span>
+                ${activeCount > 0 ? `<button class="ghost-btn" data-act="clear-sessions">${escapeHtml(t('btnClear'))}</button>` : ''}
+              </div>
+            </div>
+            <div class="task-list">${tasksHtml}</div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <span class="section-label">${escapeHtml(t('sectionPrefs'))}</span>
+            </div>
+            <div class="prefs-stack">
+              <div class="pref-row-horizontal">
+                <div class="pref-meta">
+                  <div class="pref-title">${escapeHtml(t('lblMode'))}</div>
+                  <div class="pref-desc">${escapeHtml(t('descMode'))}</div>
+                </div>
+                <div class="seg" role="group">
+                  <button class="seg-btn" data-act="set-mode" data-val="off" aria-pressed="${modeVal === 'off'}">${escapeHtml(t('modeOff'))}</button>
+                  <button class="seg-btn" data-act="set-mode" data-val="once" aria-pressed="${modeVal === 'once'}">${escapeHtml(t('modeOnce'))}</button>
+                  <button class="seg-btn" data-act="set-mode" data-val="continuous" aria-pressed="${modeVal === 'continuous'}">${escapeHtml(t('modeCont'))}</button>
+                </div>
+              </div>
+
+              <div class="pref-row-horizontal">
+                <div class="pref-meta">
+                  <div class="pref-title">${escapeHtml(t('lblAction'))}</div>
+                  <div class="pref-desc">${escapeHtml(t('descAction'))}</div>
+                </div>
+                <div class="seg" role="group">
+                  <button class="seg-btn" data-act="set-action" data-val="shutdown" aria-pressed="${cfg.action === 'shutdown'}">${escapeHtml(t('actShutdown'))}</button>
+                  <button class="seg-btn" data-act="set-action" data-val="hibernate" aria-pressed="${cfg.action === 'hibernate'}">${escapeHtml(t('actHibernate'))}</button>
+                  <button class="seg-btn" data-act="set-action" data-val="sleep" aria-pressed="${cfg.action === 'sleep'}">${escapeHtml(t('actSleep'))}</button>
+                </div>
+              </div>
+
+              <div class="pref-row-horizontal">
+                <div class="pref-meta">
+                  <div class="pref-title">${escapeHtml(t('lblGrace'))}</div>
+                  <div class="pref-desc">${escapeHtml(t('descGrace'))}</div>
+                </div>
+                <div class="seg" role="group">
+                  ${[[30, '30s'], [60, '60s'], [120, '2m'], [300, '5m']].map(([sec, lbl]) => `
+                    <button class="seg-btn" data-act="set-grace" data-val="${sec}" aria-pressed="${cfg.graceSeconds === sec}">${lbl}</button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="toggle-row">
+                <div>
+                  <div class="pref-title">${escapeHtml(t('lblIgnoreCancel'))}</div>
+                  <div class="pref-desc">${escapeHtml(t('descIgnoreCancel'))}</div>
+                </div>
+                <button class="switch" role="switch" data-act="toggle-ignore-cancel" aria-checked="${Boolean(cfg.ignoreUserCancel)}"></button>
+              </div>
+
+              <div class="toggle-row">
+                <div>
+                  <div class="pref-title">${escapeHtml(t('lblIgnoreErr'))}</div>
+                  <div class="pref-desc">${escapeHtml(t('descIgnoreErr'))}</div>
+                </div>
+                <button class="switch" role="switch" data-act="toggle-ignore-err" aria-checked="${Boolean(cfg.ignoreErrors)}"></button>
+              </div>
+            </div>
+          </section>
+
+          <footer class="footer">
+            <div class="footer-left">
+              <span class="dot" data-tone="${tone}"></span>
+              <span>${escapeHtml(footerText)}</span>
+            </div>
+            <button class="ghost-btn" data-act="preview">${escapeHtml(t('btnPreview'))}</button>
+          </footer>
+        </div>
+      `;
+    }
+
+    function render() {
+      root.dataset.surface = surface;
+      const vm = computeViewModel();
+      root.innerHTML = surface === 'inline' ? renderInline(vm) : renderPanel(vm);
+    }
+
+    // ==================== MCP APP SDK CONNECTION ====================
+    const mcpApp = new App({ name: 'Auto Shutdown', version: '1.1.0' }, {}, { autoResize: true });
+
+    async function callTool(name, args = {}) {
+      if (demoMode) return handleDemoAction(name, args);
+      if (!isConnected) return;
+      isBusy = true;
+      try {
+        const res = await mcpApp.callServerTool({ name, arguments: args });
+        if (res?.structuredContent) applySnapshot(res.structuredContent);
+      } catch {
+        // Ignore aborted calls on view reload/close
+      } finally {
+        isBusy = false;
+      }
+    }
+
+    async function pollState() {
+      if (demoMode) {
+        if (snapshot.state?.countdown?.active && Date.now() >= snapshot.state.countdown.executeAt) {
+          snapshot.state.countdown.active = false;
+        }
+        render();
+        return;
+      }
+      if (!isConnected || isBusy) return;
+      try {
+        const res = await mcpApp.callServerTool({ name: 'app_get_state', arguments: {} });
+        if (res?.structuredContent) applySnapshot(res.structuredContent);
+      } catch {}
+    }
+
+    // Event delegation so live 1s re-renders never drop clicks
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      const val = btn.dataset.val;
+
+      if (act === 'arm') {
+        snapshot.config.armed = true;
+        render();
+        callTool('app_update_config', { armed: true, mode: snapshot.config.mode || 'once' });
+      } else if (act === 'disarm') {
+        snapshot.config.armed = false;
+        if (snapshot.state?.countdown && !snapshot.state.countdown.preview) snapshot.state.countdown.active = false;
+        render();
+        callTool('app_update_config', { armed: false });
+      } else if (act === 'cancel') {
+        if (snapshot.state?.countdown) snapshot.state.countdown.active = false;
+        render();
+        callTool('app_cancel_countdown');
+      } else if (act === 'execute-now') {
+        callTool('app_execute_now');
+      } else if (act === 'clear-sessions') {
+        snapshot.sessions = [];
+        snapshot.activeCount = 0;
+        render();
+        callTool('app_clear_sessions');
+      } else if (act === 'set-mode') {
+        if (val === 'off') {
+          snapshot.config.armed = false;
+          render();
+          callTool('app_update_config', { armed: false });
+        } else {
+          snapshot.config.armed = true;
+          snapshot.config.mode = val;
+          render();
+          callTool('app_update_config', { armed: true, mode: val });
+        }
+      } else if (act === 'set-action') {
+        snapshot.config.action = val;
+        render();
+        callTool('app_update_config', { action: val });
+      } else if (act === 'set-grace') {
+        const sec = Number(val);
+        snapshot.config.graceSeconds = sec;
+        render();
+        callTool('app_update_config', { graceSeconds: sec });
+      } else if (act === 'toggle-ignore-cancel') {
+        const next = !snapshot.config.ignoreUserCancel;
+        snapshot.config.ignoreUserCancel = next;
+        render();
+        callTool('app_update_config', { ignoreUserCancel: next });
+      } else if (act === 'toggle-ignore-err') {
+        const next = !snapshot.config.ignoreErrors;
+        snapshot.config.ignoreErrors = next;
+        render();
+        callTool('app_update_config', { ignoreErrors: next });
+      } else if (act === 'toggle-lang') {
+        const next = snapshot.config.language === 'en' ? 'zh-CN' : 'en';
+        snapshot.config.language = next;
+        render();
+        callTool('app_update_config', { language: next });
+      } else if (act === 'preview') {
+        callTool('app_start_preview', { seconds: 15 });
+      }
+    });
+
+    function syncHostContext(ctx) {
+      if (!ctx) return;
+      if (ctx.theme) {
+        applyDocumentTheme(ctx.theme);
+        document.documentElement.dataset.theme = ctx.theme === 'light' ? 'light' : 'dark';
+      }
+      if (ctx.styles?.variables) {
+        applyHostStyleVariables(ctx.styles.variables);
+      }
+      if (ctx.styles?.css?.fonts) {
+        applyHostFonts(ctx.styles.css.fonts);
+      }
+    }
+
+    function handleDemoAction(name, args) {
+      if (name === 'app_update_config') {
+        snapshot.config = { ...snapshot.config, ...args };
+      } else if (name === 'app_cancel_countdown') {
+        snapshot.state.countdown.active = false;
+      } else if (name === 'app_start_preview') {
+        const now = Date.now();
+        snapshot.state.countdown = { active: true, preview: true, action: snapshot.config.action, startedAt: now, executeAt: now + 15000, graceSeconds: 15 };
+      } else if (name === 'app_clear_sessions') {
+        snapshot.sessions = [];
+        snapshot.activeCount = 0;
+      }
+      render();
+    }
+
+    function initDemoIfStandalone() {
+      const params = new URLSearchParams(window.location.search);
+      const demo = params.get('demo');
+      if (!demo && window.parent !== window) return false;
+      demoMode = demo || 'panel-dark';
+      const now = Date.now();
+      const isLight = demoMode.includes('light');
+      document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
+      surface = demoMode.includes('inline') ? 'inline' : 'panel';
+
+      if (demoMode.includes('countdown')) {
+        applySnapshot({
+          surface,
+          config: { armed: true, mode: 'once', action: 'shutdown', graceSeconds: 120, ignoreUserCancel: true, ignoreErrors: false, language: 'zh-CN' },
+          state: {
+            countdown: { active: true, preview: false, action: 'shutdown', startedAt: now - 38000, executeAt: now + 82000, graceSeconds: 120 },
+            lastEvent: { event: 'Stop', timestamp: now },
+          },
+          sessions: [],
+          activeCount: 0,
+          serverTime: now,
+        });
+      } else {
+        applySnapshot({
+          surface,
+          config: { armed: true, mode: 'once', action: 'shutdown', graceSeconds: 120, ignoreUserCancel: true, ignoreErrors: false, language: 'zh-CN' },
+          state: {
+            countdown: { active: false, preview: false, action: 'shutdown', startedAt: null, executeAt: null, graceSeconds: 120 },
+            lastEvent: { event: 'PostToolUse', timestamp: now },
+          },
+          sessions: [
+            { conversationId: 'c1', label: '重构 API 权限中间件并运行集成测试', status: 'running_tool', startedAt: now - 262000 },
+            { conversationId: 'c2', label: '构建生产容器镜像与健康检查', status: 'waiting_background', startedAt: now - 108000 },
+          ],
+          activeCount: 2,
+          serverTime: now,
+        });
+      }
+      return true;
+    }
+
+    // Register handlers BEFORE connect() per MCP Apps spec
+    mcpApp.ontoolresult = (result) => {
+      if (result?.structuredContent) applySnapshot(result.structuredContent);
+    };
+    mcpApp.onhostcontextchanged = (ctx) => {
+      syncHostContext(ctx);
+    };
+
+    render();
+
+    if (!initDemoIfStandalone()) {
+      mcpApp.connect().then(() => {
+        isConnected = true;
+        syncHostContext(mcpApp.getHostContext());
+        pollState();
+      }).catch(() => {
+        render();
+      });
+    }
+
+    setInterval(pollState, 1000);
+  </script>
+</body>
+</html>

@@ -12,7 +12,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   ignoreErrors: false,
   staleTimeoutMinutes: 15,
   alwaysOnTop: true,
-  autoLaunchWidget: true,
+  autoLaunchWidget: false,
   theme: 'auto', // 'auto' | 'dark' | 'light'
   language: 'zh-CN', // 'zh-CN' | 'en'
   dryRun: false,
@@ -209,6 +209,32 @@ function readStateUnlocked(dataDir) {
 
 export function readState(dataDir = getDataDir()) {
   return readStateUnlocked(dataDir);
+}
+
+export function getSnapshot(dataDir = getDataDir(), now = Date.now()) {
+  const config = readConfig(dataDir);
+  const state = readStateUnlocked(dataDir);
+  const pruned = pruneStaleSessions(state, config, now);
+  if (pruned.length > 0) {
+    try {
+      withLock(dataDir, () => {
+        const fresh = readStateUnlocked(dataDir);
+        pruneStaleSessions(fresh, config, now);
+        writeJsonAtomic(getStatePath(dataDir), fresh);
+      });
+    } catch {}
+  }
+  const sessions = Object.values(state.activeSessions || {}).sort(
+    (a, b) => (a.startedAt || 0) - (b.startedAt || 0)
+  );
+  return {
+    config,
+    state,
+    sessions,
+    activeCount: sessions.length,
+    platform: process.platform,
+    serverTime: now,
+  };
 }
 
 function appendHistory(state, entry) {

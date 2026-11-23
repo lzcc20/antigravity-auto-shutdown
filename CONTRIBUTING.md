@@ -8,35 +8,35 @@ Thank you for your interest in contributing to **Auto Shutdown**!
 antigravity-auto-shutdown/
 ├── plugin.json                  # Antigravity plugin manifest
 ├── hooks.json                   # Lifecycle hooks (SessionStart, PreInvocation, PostToolUse, PostInvocation, Stop)
+├── mcp_config.json              # Native MCP App server declaration
+├── ui/app.html                  # Pre-bundled single-file MCP App UI (zero runtime install needed)
+├── web/app.html                 # Source template for the native MCP App UI
 ├── assets/                      # Bundled SVG logo and UI preview screenshots
 ├── skills/auto-shutdown/        # Antigravity Skill (/auto-shutdown)
 ├── scripts/
 │   ├── engine.mjs               # Zero-dependency state machine, lockfile, atomic storage, OS power commands
 │   ├── hook.mjs                 # Hook stdin/stdout runner
+│   ├── mcp-server.mjs           # Zero-dependency stdio MCP App server
 │   ├── countdown-worker.mjs     # Detached countdown supervisor
 │   ├── ctl.mjs                  # CLI controller
-│   ├── launch-widget.mjs        # Detached widget & worker launcher
-│   ├── widget.ps1               # Windows native WPF bottom-right floating UI + system tray
-│   └── i18n.json                # UTF-8 zh-CN / en UI strings
+│   ├── build-ui.mjs             # Rebuilds ui/app.html from web/app.html + @modelcontextprotocol/ext-apps
+│   ├── launch-widget.mjs        # Detached worker & optional Windows widget launcher
+│   ├── widget.ps1               # Optional standalone Windows WPF desktop widget
+│   └── i18n.json                # UTF-8 zh-CN / en strings for optional widget
 └── tests/
-    └── engine.test.mjs          # Unit tests (node --test)
+    ├── engine.test.mjs          # State machine unit tests
+    └── mcp.test.mjs             # Stdio MCP App server integration tests
 ```
 
 ## Development & Verification
 
-1. **Zero external runtime dependencies**: Keep the core engine pure Node.js ESM (`>= 18`) and the Windows UI pure built-in WPF (`PresentationFramework`).
-2. **Run unit tests**:
+1. **Zero external runtime dependencies**: End users should never need `npm install`. Keep all `scripts/*.mjs` pure Node.js ESM (`>= 18`), and rebuild `ui/app.html` via `node scripts/build-ui.mjs` whenever editing `web/app.html`.
+2. **Run all tests**:
    ```bash
-   node --test tests/engine.test.mjs
+   node --test tests/engine.test.mjs tests/mcp.test.mjs
    ```
 3. **Validate Antigravity plugin compliance**:
    ```bash
    agy plugin validate --strict .
    ```
-4. **Safe UI testing**: Always use dry-run preview (`node scripts/ctl.mjs preview --seconds 15`) or `-DataDir <temp-dir>` when testing countdown flows so your machine never powers off unexpectedly.
-5. **PowerShell 5.1 encoding safety**: Keep `scripts/widget.ps1` pure ASCII and place all localized strings in `scripts/i18n.json` (read explicitly as UTF-8) so Windows systems of any locale render text cleanly.
-
-## Pull Requests
-
-- Keep PRs focused and include unit tests for any state-machine or hook behavior changes.
-- Update `CHANGELOG.md` and `README.md` / `README.zh-CN.md` when adding user-facing options.
+4. **Safe UI testing**: Use `Safe Dry-Run Preview` (`演练`) or isolated temp directories (`AUTO_SHUTDOWN_DATA_DIR`) so countdown tests never power off your development machine.
