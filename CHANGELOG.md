@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Zero runtime dependencies: pure Node.js stdio MCP server + pre-bundled single-file `ui/app.html`, working identically across Windows, macOS, and Linux.
 - Added end-to-end stdio MCP server test suite (`tests/mcp.test.mjs`).
 - Added `THIRD-PARTY-NOTICES.md` for bundled `@modelcontextprotocol/ext-apps` (MIT).
+- Added dedicated English and Simplified Chinese high-DPI preview screenshots (`README.md` and `README.zh-CN.md`).
 
 ### Changed
 - Disabled automatic launch of the external Windows floating widget (`autoLaunchWidget: false`) so the native Antigravity MCP App UI is the default unobtrusive experience (the optional Windows floating pill remains available via `node scripts/ctl.mjs ui`).

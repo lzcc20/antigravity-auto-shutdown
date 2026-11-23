@@ -886,7 +886,8 @@ const __MCP_APPS__ = {getDocumentTheme:pO,applyHostStyleVariables:tO,applyHostFo
         badgePreview: 'Dry run',
         summaryIdleDisarmed: 'Idle',
         summaryIdleArmed: 'Armed · Watching tasks',
-        summaryRunning: '{n} task(s) active',
+        summaryRunningOne: '1 task active',
+        summaryRunning: '{n} tasks active',
         summaryCountdown: '{action} in {time}',
         summaryPreview: 'Dry-run preview · {time}',
         captionDisarmed: 'Arm to {action} {grace} after all tasks finish',
@@ -1079,7 +1080,9 @@ const __MCP_APPS__ = {getDocumentTheme:pO,applyHostStyleVariables:tO,applyHostFo
       if (cdActive) {
         headline = cdPreview ? t('summaryPreview', { time: timeStr }) : t('summaryCountdown', { time: timeStr, action: actLabel });
       } else if (activeCount > 0) {
-        headline = t('summaryRunning', { n: activeCount });
+        headline = activeCount === 1 && snapshot?.config?.language === 'en'
+          ? t('summaryRunningOne')
+          : t('summaryRunning', { n: activeCount });
       } else if (cfg.armed) {
         headline = t('summaryIdleArmed');
       }
@@ -1438,6 +1441,7 @@ const __MCP_APPS__ = {getDocumentTheme:pO,applyHostStyleVariables:tO,applyHostFo
       const demo = params.get('demo');
       if (!demo && window.parent !== window) return false;
       demoMode = demo || 'panel-dark';
+      const lang = params.get('lang') === 'en' ? 'en' : 'zh-CN';
       const now = Date.now();
       const isLight = demoMode.includes('light');
       document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
@@ -1446,7 +1450,7 @@ const __MCP_APPS__ = {getDocumentTheme:pO,applyHostStyleVariables:tO,applyHostFo
       if (demoMode.includes('countdown')) {
         applySnapshot({
           surface,
-          config: { armed: true, mode: 'once', action: 'shutdown', graceSeconds: 120, ignoreUserCancel: true, ignoreErrors: false, language: 'zh-CN' },
+          config: { armed: true, mode: 'once', action: 'shutdown', graceSeconds: 120, ignoreUserCancel: true, ignoreErrors: false, language: lang },
           state: {
             countdown: { active: true, preview: false, action: 'shutdown', startedAt: now - 38000, executeAt: now + 82000, graceSeconds: 120 },
             lastEvent: { event: 'Stop', timestamp: now },
@@ -1456,18 +1460,24 @@ const __MCP_APPS__ = {getDocumentTheme:pO,applyHostStyleVariables:tO,applyHostFo
           serverTime: now,
         });
       } else {
+        const demoSessions = lang === 'en'
+          ? [
+              { conversationId: 'c1', label: 'Refactor API auth middleware & run integration tests', status: 'running_tool', startedAt: now - 262000 },
+              { conversationId: 'c2', label: 'Build production container image & health checks', status: 'waiting_background', startedAt: now - 108000 },
+            ]
+          : [
+              { conversationId: 'c1', label: '重构 API 权限中间件并运行集成测试', status: 'running_tool', startedAt: now - 262000 },
+              { conversationId: 'c2', label: '构建生产容器镜像与健康检查', status: 'waiting_background', startedAt: now - 108000 },
+            ];
         applySnapshot({
           surface,
-          config: { armed: true, mode: 'once', action: 'shutdown', graceSeconds: 120, ignoreUserCancel: true, ignoreErrors: false, language: 'zh-CN' },
+          config: { armed: true, mode: 'once', action: 'shutdown', graceSeconds: 120, ignoreUserCancel: true, ignoreErrors: false, language: lang },
           state: {
             countdown: { active: false, preview: false, action: 'shutdown', startedAt: null, executeAt: null, graceSeconds: 120 },
             lastEvent: { event: 'PostToolUse', timestamp: now },
           },
-          sessions: [
-            { conversationId: 'c1', label: '重构 API 权限中间件并运行集成测试', status: 'running_tool', startedAt: now - 262000 },
-            { conversationId: 'c2', label: '构建生产容器镜像与健康检查', status: 'waiting_background', startedAt: now - 108000 },
-          ],
-          activeCount: 2,
+          sessions: demoSessions,
+          activeCount: demoSessions.length,
           serverTime: now,
         });
       }

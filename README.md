@@ -31,7 +31,7 @@ Designed to feel **indistinguishable from a native Antigravity feature**: inheri
 
 <div align="center">
   <p><strong>Full-Page Sidebar View (Left Sidebar → Plugins → Auto Shutdown)</strong></p>
-  <img src="assets/preview-fullpage-dark.png" alt="Full Page Native View" width="720" />
+  <img src="assets/preview-fullpage-dark-en.png" alt="Full Page Native View" width="720" />
 </div>
 
 <br/>
@@ -43,8 +43,8 @@ Designed to feel **indistinguishable from a native Antigravity feature**: inheri
       <td align="center"><strong>Side Panel · Light (Active Tasks)</strong></td>
     </tr>
     <tr>
-      <td align="center"><img src="assets/preview-sidepanel-dark.png" alt="Side Panel Dark" width="340" /></td>
-      <td align="center"><img src="assets/preview-sidepanel-light.png" alt="Side Panel Light" width="340" /></td>
+      <td align="center"><img src="assets/preview-sidepanel-dark-en.png" alt="Side Panel Dark" width="340" /></td>
+      <td align="center"><img src="assets/preview-sidepanel-light-en.png" alt="Side Panel Light" width="340" /></td>
     </tr>
   </table>
 </div>
@@ -53,7 +53,7 @@ Designed to feel **indistinguishable from a native Antigravity feature**: inheri
 
 <div align="center">
   <p><strong>Inline Chat Card (Rendered inside conversation stream)</strong></p>
-  <img src="assets/preview-inline-dark.png" alt="Inline Chat Card" width="540" />
+  <img src="assets/preview-inline-dark-en.png" alt="Inline Chat Card" width="540" />
 </div>
 
 ---
